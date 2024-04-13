@@ -42,7 +42,7 @@ def get_HuggingFace_embedding_model():
 
 def get_vertex_embedding_model():
     embeddings = VertexAIEmbeddings(requests_per_minute=150)
-    log(f'Setting "Vertex Embedding (textembedding-gecko)" as embedding model')
+    log('Setting "Vertex Embedding (textembedding-gecko)" as embedding model')
     return embeddings
 
 
@@ -78,7 +78,7 @@ def get_chroma_retriever(embeddings):
     retriever = db.as_retriever(
         search_type="similarity",
         search_kwargs={"k":2})
-    log(f'Chroma index loaded for Q&A')
+    log('Chroma index loaded for Q&A')
     return retriever
 
 
@@ -86,7 +86,7 @@ def get_faiss_retriever(embeddings):
     db = FAISS.load_local(VECTOR_DB_LOC, embeddings)
     retriever = db.as_retriever(
         search_kwargs={'k': 2})
-    log(f'FAISS index loaded for Q&A')
+    log('FAISS index loaded for Q&A')
     return retriever
 
 
@@ -98,13 +98,13 @@ def get_retriever(embeddings):
 
 
 def get_llm_model():
-    log(f'Setting Google "text-bison@001" as Large Language Model')
+    log('Setting Google "text-bison@001" as Large Language Model')
     return VertexAI(model_name = 'text-bison@001', max_output_tokens = 256, temperature = 0.1, top_p = 0.8, top_k = 40, verbose = True,)
 
 
 def set_custom_prompt():
     prompt = PromptTemplate(template=PROMPT_TEMPLATE, input_variables=['context', 'question'])
-    log(f'Custom prompt created')
+    log('Custom prompt created')
     return prompt
 
 
@@ -115,7 +115,7 @@ def retrievalQA(llm,chain_type,retriever):
         retriever=retriever,
         return_source_documents=True,
         chain_type_kwargs={'prompt': set_custom_prompt()})
-    log(f'Initialized Q&A chain using "LangChain"')
+    log('Initialized Q&A chain using "LangChain"')
     return retrievalQA
 
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         else:
             create_db(texts, embeddings)
     else:
-        log(f'Loading existing vector db')
+        log('Loading existing vector db')
     retriever = get_retriever(embeddings)
     retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
     result = getAnswer(retrievalQA, "What AAA stands for?")
