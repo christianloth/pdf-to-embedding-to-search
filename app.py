@@ -153,5 +153,5 @@ if __name__ == "__main__":
         log(f'Loading existing vector db')
     retriever = get_retriever(embeddings)
     retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
-    result = getAnswer(retrievalQA, "What AAA stands for?")
+    result = getAnswer(retrievalQA, "I am sad. What should I do?")
     log(f'Response: {result["result"]}\n')
