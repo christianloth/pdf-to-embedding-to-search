@@ -5,3 +5,5 @@ sentence_transformers==2.2.2
 chromadb==0.4.5
 faiss-cpu==1.7.4
 chainlit==0.6.2
+spacy~=3.7.4
+numpy~=1.26.4

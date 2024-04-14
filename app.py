@@ -1,10 +1,8 @@
 import json
-import os
-from sentence_transformers import SentenceTransformer
+import spacy
 
 
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.vectorstores import FAISS
 from langchain.vectorstores import Chroma
@@ -33,12 +31,34 @@ def create_text_chunks():
     loader = DirectoryLoader(DATA_PATH, glob='*.pdf', loader_cls=PyPDFLoader)
     documents = loader.load()
     log(f'{len(documents)} docs will be processed from {DATA_PATH}')
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-    texts = text_splitter.split_documents(documents)
+
+    nlp = spacy.load("en_core_web_sm")
+
+    texts = []
+    text_chunks = []
+    for doc in documents:
+        doc_text = doc.page_content
+        doc_sentences = [sent.text.strip() for sent in nlp(doc_text).sents]
+
+        current_chunk = []
+        current_length = 0
+        for sentence in doc_sentences:
+            if current_length + len(sentence) <= CHUNK_SIZE:
+                current_chunk.append(sentence)
+                current_length += len(sentence)
+            else:
+                texts.append(" ".join(current_chunk))
+                text_chunks.append(" ".join(current_chunk))
+                current_chunk = [sentence]
+                current_length = len(sentence)
+
+        if current_chunk:
+            texts.append(" ".join(current_chunk))
+            text_chunks.append(" ".join(current_chunk))
+
     log(f'{len(texts)} Text chunks to be converted into embedding')
 
     # Save text chunks to a JSON file
-    text_chunks = [chunk.page_content for chunk in texts]
     with open(f"{DB_PATH}/text_chunks.json", 'w') as f:
         json.dump({"text_chunks": text_chunks}, f, indent=4)
 
@@ -65,14 +85,13 @@ def get_embedding_model():
 
 
 def create_faiss_db(texts, embeddings):
-    db = FAISS.from_documents(texts, embeddings)
+    db = FAISS.from_texts(texts, embeddings)
     db.save_local(VECTOR_DB_LOC)
     log(f'Setting "FAISS" as vector database @ [{VECTOR_DB_LOC}]')
 
 
 def create_chroma_db(texts, embeddings):
-    db = Chroma(collection_name="langchain", persist_directory=VECTOR_DB_LOC, embedding_function=embeddings)
-    db.add_documents(documents=texts, embedding=embeddings)
+    db = Chroma.from_texts(texts, embeddings, collection_name="langchain", persist_directory=VECTOR_DB_LOC)
     db.persist()  
     log(f'Setting "Chroma" as vector database @ [{VECTOR_DB_LOC}]')
 
