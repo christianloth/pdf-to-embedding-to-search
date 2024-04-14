@@ -1,11 +1,10 @@
 import json
 import os
-from pypdf.errors import EmptyFileError
 import spacy
 
 
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.document_loaders import PyPDFLoader, DirectoryLoader
+from langchain.document_loaders import PyPDFLoader
 from langchain.vectorstores import FAISS
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
@@ -190,11 +189,11 @@ if __name__ == "__main__":
         if len(texts) == 0: 
             log('No files found.')
             exit()
-    #     else:
-    #         create_db(texts, embeddings)
-    # else:
-    #     log(f'Loading existing vector db')
-    # retriever = get_retriever(embeddings)
-    # retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
-    # result = getAnswer(retrievalQA, "I am sad. What should I do?")
-    # log(f'Response: {result["result"]}\n')
+        else:
+            create_db(texts, embeddings)
+    else:
+        log(f'Loading existing vector db')
+    retriever = get_retriever(embeddings)
+    retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
+    result = getAnswer(retrievalQA, "I am sad. What should I do?")
+    log(f'Response: {result["result"]}\n')
