@@ -1,7 +1,7 @@
 import json
 import os
 import spacy
-
+from langchain.chat_models import ChatOpenAI
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.document_loaders import PyPDFLoader
@@ -90,11 +90,9 @@ def get_vertex_embedding_model():
 
 
 def get_embedding_model():
-    if EMBEDDING == "textembedding-gecko":
-        return get_vertex_embedding_model()
-    else:
-        return get_HuggingFace_embedding_model()
-
+    embeddings = OpenAIEmbeddings()
+    log(f'Setting "OpenAI text-embedding-3-large" as embedding model')
+    return embeddings
 
 def create_faiss_db(texts, embeddings):
     db = FAISS.from_texts(texts, embeddings)
@@ -140,8 +138,8 @@ def get_retriever(embeddings):
 
 
 def get_llm_model():
-    log(f'Setting Google "text-bison@001" as Large Language Model')
-    return VertexAI(model_name = 'text-bison@001', max_output_tokens = 256, temperature = 0.1, top_p = 0.8, top_k = 40, verbose = True,)
+    log(f'Setting OpenAI "gpt-3.5-turbo" as Large Language Model')
+    return ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0.1, max_tokens=256)
 
 
 def set_custom_prompt():
@@ -150,19 +148,17 @@ def set_custom_prompt():
     return prompt
 
 
-def retrievalQA(llm,chain_type,retriever):
-    retrievalQA = RetrievalQA.from_chain_type(
+def retrievalQA(llm, retriever):
+    retrievalQA = RetrievalQA.from_llm(
         llm=llm,
-        chain_type=chain_type,
         retriever=retriever,
-        return_source_documents=True,
-        chain_type_kwargs={'prompt': set_custom_prompt()})
+        return_source_documents=True)
     log(f'Initialized Q&A chain using "LangChain"')
     return retrievalQA
 
 
 def getAnswer(retrievalQA, question):
-    return retrievalQA({"query": question})    
+    return retrievalQA({"query": question})
 
 
 def log(line):
@@ -194,6 +190,6 @@ if __name__ == "__main__":
     else:
         log(f'Loading existing vector db')
     retriever = get_retriever(embeddings)
-    retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
-    result = getAnswer(retrievalQA, "I am sad. What should I do?")
+    retrievalQA = retrievalQA(get_llm_model(), retriever)
+    result = getAnswer(retrievalQA, "A meta-analysis showed that what resulted in superior outcomes?")
     log(f'Response: {result["result"]}\n')

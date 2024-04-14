@@ -29,7 +29,7 @@ def search_in_index(index, vector, k=5):
     return distances, indices
 
 # Example usage
-index_path = '../output/FAISS/sentence-transformers/all-mpnet-base-v2/index.faiss'  # Adjust this path to where your .faiss file is saved
+index_path = '../output/FAISS/text-embedding-3-large/index.faiss'  # Adjust this path to where your .faiss file is saved
 index = load_faiss_index(index_path)
 
 # Example vector (must be the same dimension as those in the index)
