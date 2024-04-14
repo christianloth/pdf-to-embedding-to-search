@@ -1,3 +1,8 @@
+import json
+import os
+from sentence_transformers import SentenceTransformer
+
+
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, DirectoryLoader
@@ -31,6 +36,12 @@ def create_text_chunks():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     texts = text_splitter.split_documents(documents)
     log(f'{len(texts)} Text chunks to be converted into embedding')
+
+    # Save text chunks to a JSON file
+    text_chunks = [chunk.page_content for chunk in texts]
+    with open(f"{DB_PATH}/text_chunks.json", 'w') as f:
+        json.dump({"text_chunks": text_chunks}, f, indent=4)
+
     return texts
 
 
@@ -146,7 +157,7 @@ if __name__ == "__main__":
         texts = create_text_chunks()
         if len(texts) == 0: 
             log('No files found.')
-            exit
+            exit()
         else:
             create_db(texts, embeddings)
     else:
