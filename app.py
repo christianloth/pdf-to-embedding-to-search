@@ -1,4 +1,6 @@
 import json
+import os
+from pypdf.errors import EmptyFileError
 import spacy
 
 
@@ -28,33 +30,45 @@ PROMPT_TEMPLATE = str(config["prompt"]["template"])
 
 
 def create_text_chunks():
-    loader = DirectoryLoader(DATA_PATH, glob='*.pdf', loader_cls=PyPDFLoader)
-    documents = loader.load()
-    log(f'{len(documents)} docs will be processed from {DATA_PATH}')
-
+    # Initialize the language processing model
     nlp = spacy.load("en_core_web_sm")
-
     texts = []
     text_chunks = []
-    for doc in documents:
-        doc_text = doc.page_content
-        doc_sentences = [sent.text.strip() for sent in nlp(doc_text).sents]
 
-        current_chunk = []
-        current_length = 0
-        for sentence in doc_sentences:
-            if current_length + len(sentence) <= CHUNK_SIZE:
-                current_chunk.append(sentence)
-                current_length += len(sentence)
-            else:
-                texts.append(" ".join(current_chunk))
-                text_chunks.append(" ".join(current_chunk))
-                current_chunk = [sentence]
-                current_length = len(sentence)
+    # Manually list and load each PDF file
+    for filename in os.listdir(DATA_PATH):
+        if filename.endswith('.pdf'):
+            file_path = os.path.join(DATA_PATH, filename)
+            try:
+                # Load each document individually
+                doc_loader = PyPDFLoader(file_path)
+                document = doc_loader.load()  # Assuming the loader returns a list of document objects or similar
+                doc_text = " ".join([doc.page_content for doc in document if doc.page_content])
+                if not doc_text:  # Check if the document content is empty
+                    log(f'Skipped an empty document: {filename}')
+                    continue
 
-        if current_chunk:
-            texts.append(" ".join(current_chunk))
-            text_chunks.append(" ".join(current_chunk))
+                doc_sentences = [sent.text.strip() for sent in nlp(doc_text).sents]
+                current_chunk = []
+                current_length = 0
+
+                for sentence in doc_sentences:
+                    if current_length + len(sentence) <= CHUNK_SIZE:
+                        current_chunk.append(sentence)
+                        current_length += len(sentence)
+                    else:
+                        if current_chunk:
+                            texts.append(" ".join(current_chunk))
+                            text_chunks.append(" ".join(current_chunk))
+                            current_chunk = [sentence]
+                            current_length = len(sentence)
+
+                if current_chunk:
+                    texts.append(" ".join(current_chunk))
+                    text_chunks.append(" ".join(current_chunk))
+
+            except Exception as e:
+                log(f'Error loading or processing {filename}: {str(e)}')  # Handle loading errors gracefully
 
     log(f'{len(texts)} Text chunks to be converted into embedding')
 
@@ -63,7 +77,6 @@ def create_text_chunks():
         json.dump({"text_chunks": text_chunks}, f, indent=4)
 
     return texts
-
 
 def get_HuggingFace_embedding_model():
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING, model_kwargs={'device': 'cpu'})
@@ -177,11 +190,11 @@ if __name__ == "__main__":
         if len(texts) == 0: 
             log('No files found.')
             exit()
-        else:
-            create_db(texts, embeddings)
-    else:
-        log(f'Loading existing vector db')
-    retriever = get_retriever(embeddings)
-    retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
-    result = getAnswer(retrievalQA, "I am sad. What should I do?")
-    log(f'Response: {result["result"]}\n')
+    #     else:
+    #         create_db(texts, embeddings)
+    # else:
+    #     log(f'Loading existing vector db')
+    # retriever = get_retriever(embeddings)
+    # retrievalQA = retrievalQA(get_llm_model(), "stuff", retriever)
+    # result = getAnswer(retrievalQA, "I am sad. What should I do?")
+    # log(f'Response: {result["result"]}\n')
